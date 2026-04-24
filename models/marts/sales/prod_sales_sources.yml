@@ -1,8 +1,6 @@
 version: 2
 
 sources:
-  - name: rhodes_sales
+  - name: rhodes_prod_sales
     database: rhodes
     schema: prod_sales
-
-      
