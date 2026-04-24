@@ -1,6 +1,7 @@
+
 {{ config(materialized='table') }}
 
-WITH regional_manager_sales AS(
+WITH price_persq_sales AS(
     select
     COMMUNITY,
     CITY,
@@ -14,4 +15,4 @@ WITH regional_manager_sales AS(
     from {{ ref('regional_manager_sales') }}
 )
 
-select * from regional_manager_sales
+select * from price_persq_sales
