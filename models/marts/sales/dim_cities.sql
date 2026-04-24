@@ -1,10 +1,10 @@
 {{ config(materialized='table') }}
 
-WITH regional_managers AS(
+WITH dim_cities AS(
     select DISTINCT
     REGION,
-    REGIONAL_MANAGER
+    CITY
     from {{ ref('regional_manager_sales') }}
 )
 
-select * from regional_managers
+select * from dim_cities

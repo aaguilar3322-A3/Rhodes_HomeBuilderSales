@@ -35,12 +35,17 @@ clean-targets:         # directories to be removed by `dbt clean`
 # continue to be built as views. These settings can be overridden in the individual model files
 # using the `{{ config(...) }}` macro.
 
-#models:
-#  Rhodes_HomeBuilderSales:
-    # Applies to all files under models/example/
-#    staging:
-#        +materialized: view
-#        snowflake_warehouse: raw_ingest_wh
-#    marts:
-#        +materialized: table
-#        snowflake_warehouse: raw_ingest_wh
+models:
+  Rhodes_HomeBuilderSales:
+    # Applies to all files under models/staging/
+    staging:
+        +materialized: view
+        +snowflake_warehouse: raw_ingest_wh
+    # Applies to all files under models/immediate/
+    immediate:
+      +materialized: table
+      +snowflake_warehouse: raw_ingest_wh
+    # Applies to all files under models/marts/
+    marts:
+        +materialized: table
+        +snowflake_warehouse: raw_ingest_wh
