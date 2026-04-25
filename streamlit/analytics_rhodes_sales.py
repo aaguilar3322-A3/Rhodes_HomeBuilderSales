@@ -23,6 +23,7 @@ conn = snowflake.connector.connect(
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Create filters
 #regions = df["REGION"].unique()
 #selected_region = st.selectbox("Select Region", regions)
@@ -85,6 +86,21 @@ df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
 #regions = df["REGION"].unique()
 #selected_region = st.selectbox("Select Region", regions)
 
+=======
+# Query the fact table
+df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
+
+# Query dimension cities table
+df_c = pd.read_sql("SELECT * FROM dim_cities", conn)
+
+# Query regional managers table
+df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
+
+# Create filters
+#regions = df["REGION"].unique()
+#selected_region = st.selectbox("Select Region", regions)
+
+>>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
 #filtered = df[df["REGION"] == selected_region]
 
 # Create a sidebar with filters - include all filters from dimension tables    
@@ -135,8 +151,13 @@ filtered = df_avg_c_sp[
 chart = alt.Chart(filtered).mark_bar().encode(
     x="CITY",
 <<<<<<< HEAD
+<<<<<<< HEAD
     y="mean(FACT_AVG_CITY_SALES_PRICE)",
     color="REGION"
+=======
+    y="AVG_SALESPRICE_PER_CITY",
+    color="CITY"
+>>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
 =======
     y="AVG_SALESPRICE_PER_CITY",
     color="CITY"
