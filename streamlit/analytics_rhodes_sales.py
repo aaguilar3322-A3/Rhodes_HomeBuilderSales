@@ -22,6 +22,53 @@ conn = snowflake.connector.connect(
 )
 
 
+# Create filters
+#regions = df["REGION"].unique()
+#selected_region = st.selectbox("Select Region", regions)
+
+#filtered = df[df["REGION"] == selected_region]
+    
+with st.sidebar:
+    st.header("Filters")
+
+    regions = st.multiselect(
+        "Region",
+        df["REGION"].unique(),
+        default=df["REGION"].unique()
+    )
+
+    managers = st.multiselect(
+        "Regional Manager",
+        df["REGIONAL_MANAGER"].unique(),
+        default=df["REGIONAL_MANAGER"].unique()
+    )
+
+    cities = st.multiselect(
+        "City",
+        df["CITY"].unique(),
+        default=df["CITY"].unique()
+    )
+
+    communities = st.multiselect(
+        "Community",
+        df["COMMUNITY"].unique(),
+        default=df["COMMUNITY"].unique()
+    )
+
+    #consultants = st.multiselect(
+    #    "Sales Consultant",
+    #    df["SALES_CONSULTANT"].unique(),
+    #    default=df["SALES_CONSULTANT"].unique()
+    #)
+
+# Apply filters to all
+filtered = df[
+    (df["REGION"].isin(regions)) &
+    (df["REGIONAL_MANAGER"].isin(managers)) &
+    (df["CITY"].isin(cities)) &
+    (df["COMMUNITY"].isin(communities)) &
+#    (df["SALES_CONSULTANT"].isin(consultants))
+]
 # Query the fact table
 df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
 
@@ -84,6 +131,8 @@ filtered = df_avg_c_sp[
 # Create charts using the metrics and dimensions
 chart = alt.Chart(filtered).mark_bar().encode(
     x="CITY",
+    y="mean(FACT_AVG_CITY_SALES_PRICE)",
+    color="REGION"
     y="AVG_SALESPRICE_PER_CITY",
     color="CITY"
 )
