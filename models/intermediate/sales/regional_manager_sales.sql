@@ -9,6 +9,8 @@ hb_sales AS (
 ),
 regional_manager_sales AS(
 SELECT
+    date_part('month', s.CLOSE_DATE) AS Month,
+    date_part('year', s.CLOSE_DATE) AS Year,
 	s.CONTRACT_ID,
 	s.COMMUNITY,
 	s.CITY,
