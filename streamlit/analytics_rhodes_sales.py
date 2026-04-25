@@ -22,91 +22,28 @@ conn = snowflake.connector.connect(
 )
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> a4434ee87b2bbe2f3015345bbb1e321c66704f22
-# Create filters
-#regions = df["REGION"].unique()
-#selected_region = st.selectbox("Select Region", regions)
-
-#filtered = df[df["REGION"] == selected_region]
-    
-with st.sidebar:
-    st.header("Filters")
-
-    regions = st.multiselect(
-        "Region",
-        df["REGION"].unique(),
-        default=df["REGION"].unique()
-    )
-
-    managers = st.multiselect(
-        "Regional Manager",
-        df["REGIONAL_MANAGER"].unique(),
-        default=df["REGIONAL_MANAGER"].unique()
-    )
-
-    cities = st.multiselect(
-        "City",
-        df["CITY"].unique(),
-        default=df["CITY"].unique()
-    )
-
-    communities = st.multiselect(
-        "Community",
-        df["COMMUNITY"].unique(),
-        default=df["COMMUNITY"].unique()
-    )
-
-    #consultants = st.multiselect(
-    #    "Sales Consultant",
-    #    df["SALES_CONSULTANT"].unique(),
-    #    default=df["SALES_CONSULTANT"].unique()
-    #)
-
-# Apply filters to all
-filtered = df[
-    (df["REGION"].isin(regions)) &
-    (df["REGIONAL_MANAGER"].isin(managers)) &
-    (df["CITY"].isin(cities)) &
-    (df["COMMUNITY"].isin(communities)) &
-#    (df["SALES_CONSULTANT"].isin(consultants))
-]
-<<<<<<< HEAD
-=======
 # Query the fact table
 df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
 
 # Query dimension cities table
 df_c = pd.read_sql("SELECT * FROM dim_cities", conn)
 
+# Query sales_consultants table
+df_sc = pd.read_sql("SELECT * FROM dim_sales_consultants", conn)
+
 # Query regional managers table
 df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
->>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
+
+# Query close dates table
+df_cd = pd.read_sql("SELECT * FROM dim_close_dates", conn)
+
+# Query close dates years and months table
+df_my = pd.read_sql("SELECT * FROM dim_close_date_my", conn)
 
 # Create filters
 #regions = df["REGION"].unique()
 #selected_region = st.selectbox("Select Region", regions)
 
-=======
-=======
->>>>>>> a4434ee87b2bbe2f3015345bbb1e321c66704f22
-# Query the fact table
-df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
-
-# Query dimension cities table
-df_c = pd.read_sql("SELECT * FROM dim_cities", conn)
-
-# Query regional managers table
-df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
-
-# Create filters
-#regions = df["REGION"].unique()
-#selected_region = st.selectbox("Select Region", regions)
-
->>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
 #filtered = df[df["REGION"] == selected_region]
 
 # Create a sidebar with filters - include all filters from dimension tables    
@@ -137,42 +74,48 @@ with st.sidebar:
         default=df_avg_c_sp["COMMUNITY"].unique()
     )
 
-    #consultants = st.multiselect(
-    #    "Sales Consultant",
-    #    df["SALES_CONSULTANT"].unique(),
-    #    default=df["SALES_CONSULTANT"].unique()
-    #)
+    consultants = st.multiselect(
+        "Sales Consultant",
+        df_sc["SALES_CONSULTANT"].unique(),
+        default=df_sc["SALES_CONSULTANT"].unique()
+    )
+
+    years = st.multiselect(
+        "Year",
+        df_my["YEAR"].unique(),
+        default=df_my["YEAR"].unique()
+    )
+
+    months = st.multiselect(
+        "Month",
+        df_my["MONTH"].unique(),
+        default=df_my["MONTH"].unique()
+    )
+
+    closedates = st.multiselect(
+        "Close Date",
+        df_cd["CLOSE_DATE"].unique(),
+        default=df_cd["CLOSE_DATE"].unique()
+    )
+
 
 # Apply filters globally to be able to interact with dashboard
 filtered = df_avg_c_sp[
     (df_c["REGION"].isin(regions)) &
     (df_rm["REGIONAL_MANAGER"].isin(managers)) &
     (df_c["CITY"].isin(cities)) &
-    (df_c["COMMUNITY"].isin(communities)) 
-    #&
-    #(df["SALES_CONSULTANT"].isin(consultants))
+    (df_c["COMMUNITY"].isin(communities)) &
+    (df_sc["SALES_CONSULTANT"].isin(consultants)) &
+    (df_my["YEAR"].isin(years)) &
+    (df_my["MONTH"].isin(months)) &
+    (df_cd["CLOSE_DATE"].isin(closedates))
 ]
 
 # Create charts using the metrics and dimensions
 chart = alt.Chart(filtered).mark_bar().encode(
     x="CITY",
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    y="mean(FACT_AVG_CITY_SALES_PRICE)",
-    color="REGION"
-=======
-=======
-    y="mean(FACT_AVG_CITY_SALES_PRICE)",
-    color="REGION"
->>>>>>> a4434ee87b2bbe2f3015345bbb1e321c66704f22
     y="AVG_SALESPRICE_PER_CITY",
     color="CITY"
->>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
-=======
-    y="AVG_SALESPRICE_PER_CITY",
-    color="CITY"
->>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
 )
 
 st.altair_chart(chart, use_container_width=True)
