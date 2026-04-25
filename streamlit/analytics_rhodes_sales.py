@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import snowflake.connector
 
 import altair as alt
@@ -9,7 +10,7 @@ st.write(
     "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
 )
 
-# Connect to Snowflake
+# Connect to Snowflake via secrets file (do not publish secrets file to git)
 conn = snowflake.connector.connect(
     user=st.secrets["snowflake"]["user"],
     password=st.secrets["snowflake"]["password"],
@@ -21,11 +22,13 @@ conn = snowflake.connector.connect(
 )
 
 
-# Query your fact table
+# Query the fact table
 df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
 
+# Query dimension cities table
 df_c = pd.read_sql("SELECT * FROM dim_cities", conn)
 
+# Query regional managers table
 df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
 
 # Create filters
@@ -33,7 +36,8 @@ df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
 #selected_region = st.selectbox("Select Region", regions)
 
 #filtered = df[df["REGION"] == selected_region]
-    
+
+# Create a sidebar with filters - include all filters from dimension tables    
 with st.sidebar:
     st.header("Filters")
 
@@ -67,7 +71,7 @@ with st.sidebar:
     #    default=df["SALES_CONSULTANT"].unique()
     #)
 
-# Apply filters to all
+# Apply filters globally to be able to interact with dashboard
 filtered = df_avg_c_sp[
     (df_c["REGION"].isin(regions)) &
     (df_rm["REGIONAL_MANAGER"].isin(managers)) &
@@ -77,7 +81,7 @@ filtered = df_avg_c_sp[
     #(df["SALES_CONSULTANT"].isin(consultants))
 ]
 
-
+# Create charts using the metrics and dimensions
 chart = alt.Chart(filtered).mark_bar().encode(
     x="CITY",
     y="AVG_SALESPRICE_PER_CITY",
@@ -95,4 +99,7 @@ st.altair_chart(chart, use_container_width=True)
 
 #st.bar_chart(cancel_rate, x="REGIONAL_MANAGER", y="CANCELLED_FLAG")
 
-#
+# Create line chart using metrics and dimensions
+chart_data = pd.DataFram(
+    
+)
