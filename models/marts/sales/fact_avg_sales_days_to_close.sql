@@ -1,12 +1,6 @@
 {{ config(materialized='table') }}
 
-WITH cities AS(
-    select distinct
-    COMMUNITY,
-    CITY,
-    REGION
-    from {{ ref('dim_cities') }}
-),
+WITH 
 regional_managers AS(
     select distinct
     REGION,
@@ -14,26 +8,20 @@ regional_managers AS(
     from {{ ref('dim_regional_managers') }}
 ),
 region_sales AS(
-    select REGION, avg(CONTRACT_PRICE) AVG_SALESPRICE_PER_REGION
+    select REGION, avg(TOTAL_DAYS_TO_CLOSE) AVG_DAYS_TO_CLOSE
     from {{ref('regional_manager_closed_sales')}}
     GROUP BY REGION
 ),
-close_date_MY AS(
-    select distinct
-    d.Year,
-    d.month
-    from {{ ref('dim_close_date_my') }} d
-),
-avg_sales_per_region AS(
+AVG_DAYS_TO_CLOSE AS(
     select
 
     m.REGION, m.REGIONAL_MANAGER,
     --c.COMMUNITY,
     --s.city, 
-    ROUND(s.AVG_SALESPRICE_PER_REGION) AVG_SALESPRICE_PER_REGION
+    ROUND(s.AVG_DAYS_TO_CLOSE) AVG_DAYS_TO_CLOSE
     from region_sales s
     --LEFT JOIN cities c on s.CITY = c.CITY
     LEFT JOIN regional_managers m on s.REGION = m.REGION
 )
 
-select * from avg_sales_per_region
+select * from AVG_DAYS_TO_CLOSE

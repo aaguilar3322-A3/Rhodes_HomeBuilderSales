@@ -1,8 +1,7 @@
 {{ config(materialized='table') }}
 
 WITH cities AS(
-    select
-    COMMUNITY,
+    select distinct
     CITY,
     REGION
     from {{ ref('dim_cities') }}
@@ -21,8 +20,8 @@ city_sales AS(
 avg_sales_per_city AS(
     select
     m.REGION, m.REGIONAL_MANAGER,
-    c.COMMUNITY,
-    s.city, s.AVG_SALESPRICE_PER_CITY
+    s.city,
+    ROUND(s.AVG_SALESPRICE_PER_CITY) AVG_SALESPRICE_PER_CITY
     from city_sales s
     LEFT JOIN cities c on s.CITY = c.CITY
     LEFT JOIN regional_managers m on c.REGION = m.REGION
