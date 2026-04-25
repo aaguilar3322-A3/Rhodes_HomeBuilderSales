@@ -23,7 +23,7 @@ conn = snowflake.connector.connect(
 
 
 # Query the fact table
-df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
+df_rsp = pd.read_sql("SELECT * FROM fact_region_sales_price", conn)
 
 # Query dimension cities table
 df_c = pd.read_sql("SELECT * FROM dim_cities", conn)
@@ -53,25 +53,25 @@ with st.sidebar:
     regions = st.multiselect(
         "Region",
         df_c["REGION"].unique(),
-        default=df_avg_c_sp["REGION"].unique()
+        default=df_c["REGION"].unique()
     )
 
     managers = st.multiselect(
         "Regional Manager",
         df_rm["REGIONAL_MANAGER"].unique(),
-        default=df_avg_c_sp["REGIONAL_MANAGER"].unique()
+        default=df_rm["REGIONAL_MANAGER"].unique()
     )
 
     cities = st.multiselect(
         "City",
         df_c["CITY"].unique(),
-        default=df_avg_c_sp["CITY"].unique()
+        default=df_c["CITY"].unique()
     )
 
     communities = st.multiselect(
         "Community",
         df_c["COMMUNITY"].unique(),
-        default=df_avg_c_sp["COMMUNITY"].unique()
+        default=df_c["COMMUNITY"].unique()
     )
 
     consultants = st.multiselect(
@@ -100,7 +100,7 @@ with st.sidebar:
 
 
 # Apply filters globally to be able to interact with dashboard
-filtered = df_avg_c_sp[
+filtered = df_rsp[
     (df_c["REGION"].isin(regions)) &
     (df_rm["REGIONAL_MANAGER"].isin(managers)) &
     (df_c["CITY"].isin(cities)) &
@@ -130,6 +130,5 @@ st.altair_chart(chart, use_container_width=True)
 #st.bar_chart(cancel_rate, x="REGIONAL_MANAGER", y="CANCELLED_FLAG")
 
 # Create line chart using metrics and dimensions
-chart_data = pd.DataFram(
-    
-)
+#chart_data = pd.DataFram(   
+#)
