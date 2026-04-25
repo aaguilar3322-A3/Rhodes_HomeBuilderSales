@@ -23,7 +23,7 @@ conn = snowflake.connector.connect(
 
 
 # Query the fact table
-df_rsp = pd.read_sql("SELECT * FROM fact_region_sales_price", conn)
+df_cs = pd.read_sql("SELECT * FROM fact_closed_sales", conn)
 
 # Query dimension cities table
 df_c = pd.read_sql("SELECT * FROM dim_cities", conn)
@@ -53,82 +53,69 @@ with st.sidebar:
     regions = st.multiselect(
         "Region",
         df_c["REGION"].unique(),
-        default=df_c["REGION"].unique()
+        default=df_cs["REGION"].unique()
     )
 
     managers = st.multiselect(
         "Regional Manager",
         df_rm["REGIONAL_MANAGER"].unique(),
-        default=df_rm["REGIONAL_MANAGER"].unique()
+        default=df_cs["REGIONAL_MANAGER"].unique()
     )
 
     cities = st.multiselect(
         "City",
         df_c["CITY"].unique(),
-        default=df_c["CITY"].unique()
+        default=df_cs["CITY"].unique()
     )
 
     communities = st.multiselect(
         "Community",
         df_c["COMMUNITY"].unique(),
-        default=df_c["COMMUNITY"].unique()
+        default=df_cs["COMMUNITY"].unique()
     )
 
     consultants = st.multiselect(
         "Sales Consultant",
         df_sc["SALES_CONSULTANT"].unique(),
-        default=df_sc["SALES_CONSULTANT"].unique()
+        default=df_cs["SALES_CONSULTANT"].unique()
     )
 
     years = st.multiselect(
         "Year",
         df_my["YEAR"].unique(),
-        default=df_my["YEAR"].unique()
+        default=df_cs["YEAR"].unique()
     )
 
     months = st.multiselect(
         "Month",
         df_my["MONTH"].unique(),
-        default=df_my["MONTH"].unique()
+        default=df_cs["MONTH"].unique()
     )
 
     closedates = st.multiselect(
         "Close Date",
         df_cd["CLOSE_DATE"].unique(),
-        default=df_cd["CLOSE_DATE"].unique()
+        default=df_cs["CLOSE_DATE"].unique()
     )
 
 
 # Apply filters globally to be able to interact with dashboard
-filtered = df_rsp[
-    (df_c["REGION"].isin(regions)) &
-    (df_rm["REGIONAL_MANAGER"].isin(managers)) &
-    (df_c["CITY"].isin(cities)) &
-    (df_c["COMMUNITY"].isin(communities)) &
-    (df_sc["SALES_CONSULTANT"].isin(consultants)) &
-    (df_my["YEAR"].isin(years)) &
-    (df_my["MONTH"].isin(months)) &
-    (df_cd["CLOSE_DATE"].isin(closedates))
+filtered = df_cs[
+    (df_cs["REGION"].isin(regions)) &
+    (df_cs["REGIONAL_MANAGER"].isin(managers)) &
+    (df_cs["CITY"].isin(cities)) &
+    (df_cs["COMMUNITY"].isin(communities)) &
+    (df_cs["SALES_CONSULTANT"].isin(consultants)) &
+    (df_cs["YEAR"].isin(years)) &
+    (df_cs["MONTH"].isin(months)) &
+    (df_cs["CLOSE_DATE"].isin(closedates))
 ]
 
 # Create charts using the metrics and dimensions
 chart = alt.Chart(filtered).mark_bar().encode(
     x="CITY",
-    y="AVG_SALESPRICE_PER_CITY",
+    y="CONTRACT_PRICE",
     color="CITY"
 )
 
 st.altair_chart(chart, use_container_width=True)
-
-#st.bar_chart(filtered["DAYS_TO_CLOSE"])
-#cancel_rate = (
-#    filtered.groupby("REGIONAL_MANAGER")["CANCELLED_FLAG"]
-#    .mean()
-#    .reset_index()
-#)
-
-#st.bar_chart(cancel_rate, x="REGIONAL_MANAGER", y="CANCELLED_FLAG")
-
-# Create line chart using metrics and dimensions
-#chart_data = pd.DataFram(   
-#)
