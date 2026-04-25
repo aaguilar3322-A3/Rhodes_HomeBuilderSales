@@ -24,6 +24,9 @@ conn = snowflake.connector.connect(
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a4434ee87b2bbe2f3015345bbb1e321c66704f22
 # Create filters
 #regions = df["REGION"].unique()
 #selected_region = st.selectbox("Select Region", regions)
@@ -71,6 +74,7 @@ filtered = df[
     (df["COMMUNITY"].isin(communities)) &
 #    (df["SALES_CONSULTANT"].isin(consultants))
 ]
+<<<<<<< HEAD
 =======
 # Query the fact table
 df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
@@ -87,6 +91,8 @@ df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
 #selected_region = st.selectbox("Select Region", regions)
 
 =======
+=======
+>>>>>>> a4434ee87b2bbe2f3015345bbb1e321c66704f22
 # Query the fact table
 df_avg_c_sp = pd.read_sql("SELECT * FROM FACT_AVG_CITY_SALES_PRICE", conn)
 
@@ -152,9 +158,14 @@ chart = alt.Chart(filtered).mark_bar().encode(
     x="CITY",
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     y="mean(FACT_AVG_CITY_SALES_PRICE)",
     color="REGION"
 =======
+=======
+    y="mean(FACT_AVG_CITY_SALES_PRICE)",
+    color="REGION"
+>>>>>>> a4434ee87b2bbe2f3015345bbb1e321c66704f22
     y="AVG_SALESPRICE_PER_CITY",
     color="CITY"
 >>>>>>> 930195e2f7b9faa4da68a69c5fc0cb2ab38c7e68
