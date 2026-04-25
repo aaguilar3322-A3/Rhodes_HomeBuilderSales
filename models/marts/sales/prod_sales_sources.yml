@@ -1,6 +1,5 @@
 version: 2
 
-sources:
-  - name: rhodes_prod_sales
-    database: rhodes
-    schema: prod_sales
+models:
+  - name: fact_sales_price_per_sqft
+  - name: fact_avg_city_sales_price
