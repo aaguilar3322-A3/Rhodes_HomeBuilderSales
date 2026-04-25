@@ -15,7 +15,7 @@ regional_managers AS(
 ),
 city_sales AS(
     select CITY, avg(CONTRACT_PRICE) AVG_SALESPRICE_PER_CITY
-    from {{ref('regional_manager_sales')}}
+    from {{ref('regional_manager_closed_sales')}}
     GROUP BY CITY
 ),
 avg_sales_per_city AS(

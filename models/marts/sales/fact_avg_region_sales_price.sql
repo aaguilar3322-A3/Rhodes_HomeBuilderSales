@@ -15,7 +15,7 @@ regional_managers AS(
 ),
 region_sales AS(
     select REGION, avg(CONTRACT_PRICE) AVG_SALESPRICE_PER_REGION
-    from {{ref('regional_manager_sales')}}
+    from {{ref('regional_manager_closed_sales')}}
     GROUP BY REGION
 ),
 close_date_MY AS(

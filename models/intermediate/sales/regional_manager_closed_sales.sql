@@ -47,3 +47,4 @@ LEFT JOIN region_managers AS r ON s.REGION = r.REGION
 )
 
 SELECT * FROM regional_manager_sales
+where IsClosed = 1

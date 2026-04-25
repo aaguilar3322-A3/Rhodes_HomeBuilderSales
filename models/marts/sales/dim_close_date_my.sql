@@ -7,6 +7,7 @@ WITH dim_close_date_my AS(
     s.Month,
     s.Year
     from {{ ref('regional_manager_sales') }} s
+    where s.CLOSE_DATE IS NOT NULL
 )
 
 select * from dim_close_date_my
