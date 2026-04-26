@@ -1,5 +1,6 @@
 {{ config(materialized='table') }}
 
+
 WITH 
 sales_consultant_closed_sales AS(
     SELECT
@@ -7,15 +8,11 @@ sales_consultant_closed_sales AS(
     , sc.*
     FROM(
         select
-        sales_consultant
-        ,round(avg(agent_commission)) AS Average_Commission
+        round(avg(agent_commission)) AS Average_Commission
         ,SUM(isclosed) AS Total_Closed
-        ,SUM(isundercontract) AS Total_Under_Contract
-        ,SUM(iscancelled) AS Total_Cancelled
         ,COUNT(CONTRACT_ID) AS Total_Contracts
         ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS ClosedPercent
         from fact_region_sales_price
-        GROUP BY sales_consultant
     ) sc
 )
 
