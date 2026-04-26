@@ -23,7 +23,7 @@ conn = snowflake.connector.connect(
 
 
 # Query the fact_sales_by_region table
-df_cs = pd.read_sql("SELECT * FROM fact_sales_by_region_my where year is not null", conn)
+df_cs = pd.read_sql("SELECT * FROM fact_sales_by_region_my", conn)
 
 df_sr = pd.read_sql("SELECT * FROM fact_sales_by_region", conn)
 
@@ -42,7 +42,7 @@ df_rm = pd.read_sql("SELECT * FROM dim_regional_managers", conn)
 df_cd = pd.read_sql("SELECT * FROM dim_close_dates", conn)
 
 # Query close dates years and months table
-df_my = pd.read_sql("SELECT * FROM dim_close_date_my", conn)
+df_my = pd.read_sql("SELECT distinct year, month FROM fact_sales_by_region_my", conn)
 
 # Create filters
 #regions = df["REGION"].unique()
@@ -99,11 +99,10 @@ with st.sidebar:
         sorted(df_my["YEAR"].unique())
     )
 
-    #months = st.multiselect(
-    #    "Month",
-    #    df_my["MONTH"].unique(),
-    #    default=df_cs["MONTH"].unique()
-    #)
+    months = st.selectbox(
+        "Month",
+        sorted(df_my["MONTH"].unique())
+    )
 
     #closedates = st.multiselect(
     #    "Close Date",
@@ -120,8 +119,9 @@ filtered = df_cs[
     #(df_cs["COMMUNITY"].isin(communities)) &
     #(df_cs["SALES_CONSULTANT"].isin(consultants)) &
     (df_cs["YEAR"] == year)
-     #&
-    #(df_cs["MONTH"].isin(months)) &
+     &
+    (df_cs["MONTH"].isin(months)) 
+    #&
     #(df_cs["CLOSE_DATE"].isin(closedates))
 ]
 
@@ -221,14 +221,29 @@ st.altair_chart(line_chart, use_container_width=True)
 ########## Rank chart for sales consultants closed sales ##########
 #left_col, right_col = st.columns([2, 1])
 #with right_col:
+
+
+df_agents_filtered = df_agents[
+    (df_agents["YEAR"] == year) &
+    (df_agents["MONTH"] == (months))
+]
+
+
 rank_chart = (
-    alt.Chart(df_agents)
+    alt.Chart(df_agents_filtered)
     .mark_bar()
     .encode(
-        y=alt.Y("SALES_CONSULTANT:N", sort="-x", title="Sales Consultant"),
-        x=alt.X("TOTAL_CLOSED:Q", title="Total Homes Closed"),
+        y=alt.Y(
+            "SALES_CONSULTANT:N",
+            sort="-x",
+            title="Sales Consultant"
+        ),
+        x=alt.X(
+            "MONTH_CLOSED_PCT:Q",
+            title="Monthly Closings"
+        ),
         color=alt.Color(
-            "CLOSING_RANK:O",
+            "MONTH_CLOSING_RANK:O",
             scale=alt.Scale(
                 domain=[1, 2, 3, 4, 5, 6],
                 range=["#2ecc71", "#27ae60", "#f1c40f", "#e67e22", "#e65022", "#e74c3c"]
@@ -237,22 +252,24 @@ rank_chart = (
         ),
         tooltip=[
             "SALES_CONSULTANT",
-            "CLOSING_RANK",
+            "MONTH_CLOSING_RANK",
+            "MONTH_CLOSED",
+            "MONTH_UNDER_CONTRACT",
+            "MONTH_CANCELLED",
+            "MONTH_CONTRACTS",
+            "MONTH_CLOSED_PCT",
+            "MONTH_AVERAGE_COMMISSION",
             "TOTAL_CLOSED",
-            "TOTAL_UNDER_CONTRACT",
-            "TOTAL_CANCELLED",
-            "TOTAL_CONTRACTS",
-            "CLOSEDPERCENT",
-            "AVERAGE_COMMISSION"
+            "TOTAL_CLOSED_PCT",
+            "TOTAL_CLOSING_RANK"
         ]
     )
     .properties(
-        title="🏆 Sales Consultant Performance Ranking",
+        title=f"🏆 Sales Consultant Ranking — {year}/{months}",
         height=400
     )
 )
 
-st.altair_chart(rank_chart, use_container_width=True)
 
 
 
