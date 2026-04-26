@@ -14,7 +14,7 @@ sales_consultant_closed_sales AS(
         ,SUM(iscancelled) AS Total_Cancelled
         ,COUNT(CONTRACT_ID) AS Total_Contracts
         ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS ClosedPercent
-        from fact_region_sales_price
+        from {{ ref('regional_manager_sales') }} r
         GROUP BY sales_consultant
     ) sc
 )

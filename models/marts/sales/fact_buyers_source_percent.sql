@@ -15,7 +15,7 @@ Buyer_Source_sales AS(
         ,round(avg(Contract_Price)) AS Average_Contract_Price
         ,COUNT(CONTRACT_ID) AS Total_Contracts
         ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS ClosedPercent
-        from fact_region_sales_price
+        from {{ ref('regional_manager_sales') }} r
         GROUP BY BUYER_SOURCE
     ) sc
 )

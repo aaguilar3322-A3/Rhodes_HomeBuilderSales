@@ -16,7 +16,7 @@ region_sales AS(
         ,round(avg(Contract_Price)) AS Average_Contract_Price
         ,COUNT(CONTRACT_ID) AS Total_Contracts
         ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS ClosedPercent
-        from fact_region_sales_price
+       from {{ ref('regional_manager_sales') }} r
         GROUP BY region, regional_manager, rm_sales_target_units, rm_margin_target_pct
     ) sc
 )
