@@ -5,7 +5,7 @@ import snowflake.connector
 
 import altair as alt
 
-st.title("🏡 Rhodes Enterprises - Homebuilder Sales Performance Dashboard")
+st.title("🏡 Rhodes Enterprises - Homebuilder Sales Performance")
 st.write(
     "Insights for Regional Managers: sales trends, consultant performance, and regional activity."
 )
@@ -26,6 +26,8 @@ conn = snowflake.connector.connect(
 df_cs = pd.read_sql("SELECT * FROM fact_sales_by_region_my where year is not null", conn)
 
 df_sr = pd.read_sql("SELECT * FROM fact_sales_by_region", conn)
+
+df_agents = pd.read_sql("SELECT * FROM fact_sales_agent_closed_percent", conn)
 
 # Query dimension regions table
 df_c = pd.read_sql("SELECT distinct Region FROM dim_cities", conn)
@@ -149,7 +151,13 @@ for idx, row in kpi_by_region.iterrows():
     pct = row["SALES_TARGET_PCT"]
 
     # Color logic
-    color = "#2ecc71" if pct >= 100 else "#ffcccc"
+    if pct >= 100:
+        color = "#2ecc71"   # green
+    elif pct >= 80:
+        color = "#eed277"   # light yellow
+    else:
+        color = "#c52929"   # light red
+
 
     # Render KPI card
     cols[idx].markdown(
@@ -164,7 +172,7 @@ for idx, row in kpi_by_region.iterrows():
             ">
             {region}<br>
             <span style="font-size:28px;">{pct:.1f}%</span><br>
-            <span style="font-size:14px;">Target Achievement</span>
+            <span style="font-size:14px;">Sales Target</span>
         </div>
         """,
         unsafe_allow_html=True
@@ -206,6 +214,45 @@ line_chart = (
 
 # Display line chart
 st.altair_chart(line_chart, use_container_width=True)
+
+
+
+
+########## Rank chart for sales consultants closed sales ##########
+#left_col, right_col = st.columns([2, 1])
+#with right_col:
+rank_chart = (
+    alt.Chart(df_agents)
+    .mark_bar()
+    .encode(
+        y=alt.Y("SALES_CONSULTANT:N", sort="-x", title="Sales Consultant"),
+        x=alt.X("TOTAL_CLOSED:Q", title="Total Homes Closed"),
+        color=alt.Color(
+            "CLOSING_RANK:O",
+            scale=alt.Scale(
+                domain=[1, 2, 3, 4, 5, 6],
+                range=["#2ecc71", "#27ae60", "#f1c40f", "#e67e22", "#e65022", "#e74c3c"]
+            ),
+            title="Rank"
+        ),
+        tooltip=[
+            "SALES_CONSULTANT",
+            "CLOSING_RANK",
+            "TOTAL_CLOSED",
+            "TOTAL_UNDER_CONTRACT",
+            "TOTAL_CANCELLED",
+            "TOTAL_CONTRACTS",
+            "CLOSEDPERCENT",
+            "AVERAGE_COMMISSION"
+        ]
+    )
+    .properties(
+        title="🏆 Sales Consultant Performance Ranking",
+        height=400
+    )
+)
+
+st.altair_chart(rank_chart, use_container_width=True)
 
 
 
