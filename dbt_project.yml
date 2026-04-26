@@ -49,3 +49,4 @@ models:
     marts:
       +materialized: table
       +snowflake_warehouse: ANALYTICS_WH
+      +schema: prod_sales
