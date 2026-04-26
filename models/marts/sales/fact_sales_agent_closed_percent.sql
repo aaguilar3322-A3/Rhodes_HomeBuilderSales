@@ -1,22 +1,54 @@
 {{ config(materialized='table') }}
 
 WITH 
-sales_consultant_closed_sales AS(
+sales_consultant_closed_sales_total AS(
     SELECT
-    DENSE_RANK() OVER (ORDER BY Total_Closed DESC) Closing_Rank
+    DENSE_RANK() OVER (ORDER BY Total_Closed DESC) Total_Closing_Rank
     , sc.*
     FROM(
         select
         sales_consultant
-        ,round(avg(agent_commission)) AS Average_Commission
+        ,round(avg(agent_commission)) AS Total_Average_Commission
         ,SUM(isclosed) AS Total_Closed
         ,SUM(isundercontract) AS Total_Under_Contract
         ,SUM(iscancelled) AS Total_Cancelled
         ,COUNT(CONTRACT_ID) AS Total_Contracts
-        ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS ClosedPercent
-        from {{ ref('regional_manager_sales') }} r
+        ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS Total_Closed_Pct
+        from {{ ref('v_regional_manager_sales') }} r
         GROUP BY sales_consultant
     ) sc
+),
+sales_consultant_closed_sales_my AS(
+    SELECT
+    DENSE_RANK() OVER (PARTITION BY sc.Year, sc.Month ORDER BY sc.Year, sc.Month, sc.Month_Closed DESC) Month_Closing_Rank
+    , sc.*
+    FROM(
+        select
+        r.Year
+        ,r.Month
+        ,sales_consultant
+        ,round(avg(agent_commission)) AS Month_Average_Commission
+        ,SUM(isclosed) AS Month_Closed
+        ,SUM(isundercontract) AS Month_Under_Contract
+        ,SUM(iscancelled) AS Month_Cancelled
+        ,COUNT(CONTRACT_ID) AS Month_Contracts
+        ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS Month_Closed_Pct
+        from {{ ref('v_regional_manager_sales') }} r
+        GROUP BY r.Year,r.Month,sales_consultant
+    ) sc
+),
+sales_consultant_closed_sales AS(
+select my.*
+,t.Total_Average_Commission
+,t.Total_Closed
+,t.Total_Under_Contract
+,t.Total_Cancelled
+,t.Total_Contracts
+,t.Total_Closed_Pct
+,t.Total_Closing_Rank
+from
+sales_consultant_closed_sales_my my
+inner join sales_consultant_closed_sales_total t on my.sales_consultant = t.sales_consultant
 )
 
 select * from sales_consultant_closed_sales

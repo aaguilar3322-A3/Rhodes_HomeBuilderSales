@@ -14,7 +14,7 @@ WITH price_persq_sales AS(
     r.LOAN_TYPE,
     r.SALES_CONSULTANT,
     r.PRICE_PER_SQFT
-    from {{ ref('regional_manager_sales') }} r
+    from {{ ref('v_regional_manager_sales') }} r
 )
 
 select * from price_persq_sales

@@ -43,7 +43,7 @@ models:
       +snowflake_warehouse: ANALYTICS_WH
     # Applies to all files under models/immediate/
     immediate:
-      +materialized: table
+      +materialized: view
       +snowflake_warehouse: ANALYTICS_WH
     # Applies to all files under models/marts/
     marts:

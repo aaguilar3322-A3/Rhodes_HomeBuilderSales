@@ -6,7 +6,7 @@ WITH dim_close_date_my AS(
     --date_part('year', CLOSE_DATE) AS Year
     s.Month,
     s.Year
-    from {{ ref('regional_manager_sales') }} s
+    from {{ ref('v_regional_manager_sales') }} s
     where s.CLOSE_DATE IS NOT NULL
 )
 

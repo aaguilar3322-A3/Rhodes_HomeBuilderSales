@@ -10,7 +10,7 @@ region_sales AS(
         ,SUM(iscancelled) AS Total_Cancelled
         ,round(avg(Contract_Price)) AS Average_Contract_Price
         ,COUNT(CONTRACT_ID) AS Total_Contracts
-        from {{ ref('regional_manager_sales') }} s
+        from {{ ref('v_regional_manager_sales') }} s
         GROUP BY s.Year, s.Month, region, regional_manager
 
 )

@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+{{ config(materialized='view') }}
 
 WITH 
 region_managers AS (
@@ -9,8 +9,8 @@ hb_sales AS (
 ),
 regional_manager_sales AS(
 SELECT
-    date_part('month', s.CLOSE_DATE) AS Month,
-    date_part('year', s.CLOSE_DATE) AS Year,
+    date_part('month', s.CONTRACT_DATE) AS Month,
+    date_part('year', s.CONTRACT_DATE) AS Year,
 	s.CONTRACT_ID,
 	s.COMMUNITY,
 	s.CITY,
@@ -47,4 +47,3 @@ LEFT JOIN region_managers AS r ON s.REGION = r.REGION
 )
 
 SELECT * FROM regional_manager_sales
-where IsClosed = 1

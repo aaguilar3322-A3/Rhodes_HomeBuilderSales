@@ -9,7 +9,7 @@ regional_managers AS(
 ),
 region_sales AS(
     select REGION, avg(TOTAL_DAYS_TO_CLOSE) AVG_DAYS_TO_CLOSE
-    from {{ref('regional_manager_closed_sales')}}
+    from {{ref('v_regional_manager_closed_sales')}}
     GROUP BY REGION
 ),
 AVG_DAYS_TO_CLOSE AS(

@@ -5,7 +5,7 @@ WITH dim_cities AS(
     COMMUNITY,
     REGION,
     CITY
-    from {{ ref('regional_manager_sales') }}
+    from {{ ref('v_regional_manager_sales') }}
 )
 
 select * from dim_cities

@@ -12,7 +12,7 @@ sales_consultant_closed_sales AS(
         ,SUM(isclosed) AS Total_Closed
         ,COUNT(CONTRACT_ID) AS Total_Contracts
         ,((SUM(isclosed) / COUNT(CONTRACT_ID)) * 100) AS ClosedPercent
-        from {{ ref('regional_manager_closed_sales') }} r
+        from {{ ref('v_regional_manager_closed_sales') }} r
     ) sc
 )
 

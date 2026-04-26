@@ -6,7 +6,7 @@ region_closed_sales AS (
     --date_part('month', CLOSE_DATE) AS Month,
     --date_part('year', CLOSE_DATE) AS Year
     r.*
-     FROM {{ ref('regional_manager_closed_sales') }} r
+     FROM {{ ref('v_regional_manager_closed_sales') }} r
      where IsClosed = 1
 )
 
