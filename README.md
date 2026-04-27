@@ -16,33 +16,40 @@
 - AI-powered features (Cortex/Snowflake functions) for natural‑language insights and automated analysis
 
 **Goal:**
-- Provide Regional Managers and Sales Leadership with real‑time visibility into performance, targets, and forecasting.
+- Real‑time visibility into sales performance
+- Consultant and regional KPIs
+- Trend analysis and forecasting
+- AI‑generated insights and summaries
+- A single source of truth for sales reporting
 
-**Components:**
+**Architecture:**
 - Snowflake
-  - Raw file storage
-  - Ingestion SQL scripts
-  - Warehouse, database, & schema setup
-  - Secrets management
+  - Raw file ingestion (CSV → Snowflake stage → tables)
+  - STAGING_SALES schema for raw + lightly transformed data
+  - PROD_SALES schema for dbt‑generated fact/dim tables
+  - Warehouse + role/security setup
+  - Cortex SQL functions for AI insights
+
 - dbt
-  - Staging models
-  - Intermediate transformations
-  - Sales marts (fact & dimension tables)
-  - Tests & documentation
+  - Staging → Intermediate → Marts model hierarchy
+  - Fact & dimension modeling
+  - Data quality tests (unique, not null, relationships)
+  - Documentation & lineage graph
+  - Production‑ready SQL transformations
+
 - Streamlit
   - KPI dashboards
   - Regional performance views
-  - Sales consultant rankings
-  - Forecasting visualizations
+  - Consultant rankings
+  - Trend & forecasting visualizations
+  - Natural‑language AI insights (Cortex via SQL)
 - AI Integration
-  - Natural‑language Q&A
+  - Snowflake Cortex SQL functions
   - Automated summaries
-  - Insight generation
-- Github
-  - Version Control
-  - Repo / Documentation
-
-**Folder Structure:**
+  - Natural‑language Q&A
+  - Insight generation based on warehouse data
+ 
+**Repo Structure:**
 -  Snowflake
     - /snowflake
  - dbt
@@ -59,6 +66,8 @@
        - <img width="264" height="444" alt="image" src="https://github.com/user-attachments/assets/2160aa55-7bf2-4f37-84dd-b685f301c6af" />
      - Lineage:
        - <img width="1173" height="1143" alt="image" src="https://github.com/user-attachments/assets/ab6c64df-c44e-4f44-88d5-e7021456f183" />
+- Streamlit
+  - /streamlit/analytics_rhodes_sales.py
 
 
 **Snowflake Schema Structure:**
@@ -112,21 +121,98 @@
    - Staging → intermediate → marts
    - Fact tables for:
      - Monthly sales
+     - Yearly sales
      - Yearly consultant performance
      - Regional targets
+     - Closed sales by buyer;s Source
+     - Average region sales prices
+     - Average sales days to close
+     - Forecasted Closed Sales
    - Dimension tables for:
-     - Consultants
-     - Managers
+     - Sales Consultants
+     - Regional Managers
      - Communities
+     - Month/Year Close Dates
    - Built‑in tests (unique, not null, relationships)
 3. Streamlit Dashboard
-   - Sidebar filters (Year, Region, Manager)
+   - Sidebar filters (Year, Region, Regional Manager)
    - KPI cards with medal‑tier styling
    - Regional sales target performance
-   - Consultant rankings (Top 3)
+   - Top 3 Sales Consultant rankings
+   - Yearly Sales by Sales Consultants
    - Monthly performance trend lines
    - Forecasting charts (Actual vs Forecast)
 4. AI Integration
    - Natural‑language insights
    - Automated summaries
    - Cortex powered analysis
+
+**Setup Overview:**
+- Create schemas for stage and prod
+- Create stage for data files
+  - <img width="1439" height="977" alt="image" src="https://github.com/user-attachments/assets/f2807043-ca57-4599-8a41-0ea6439f0026" />
+- Load data files into stage
+  -
+- Load into tables
+  - <img width="1272" height="575" alt="image" src="https://github.com/user-attachments/assets/8ae401f7-36ce-4326-8cf8-8d6faf0dab2e" />
+  - <img width="759" height="762" alt="image" src="https://github.com/user-attachments/assets/a8c69b92-73a7-4576-ae3f-c39fb4080a02" />
+  - <img width="1270" height="579" alt="image" src="https://github.com/user-attachments/assets/124bd5af-1e1c-4657-9906-ad6829b43151" />
+- Create User Account
+  - <img width="1245" height="642" alt="image" src="https://github.com/user-attachments/assets/78f09a88-6096-4795-84ad-8c3d265ade03" />
+- Generate token for user
+  - <img width="1990" height="840" alt="image" src="https://github.com/user-attachments/assets/915d1a0e-b5c3-4112-83d6-fd47d5ea18b4" />
+  - <img width="562" height="588" alt="image" src="https://github.com/user-attachments/assets/3bc05322-dcec-44a8-bc62-ebf1f71e9dc5" />
+- Create GitHub Repo
+  - <img width="359" height="254" alt="image" src="https://github.com/user-attachments/assets/78e5e89a-87e1-404b-a57b-2a762fa4f460" />
+  - <img width="772" height="790" alt="image" src="https://github.com/user-attachments/assets/eb8e5bed-fcf9-4840-9ea8-f0c854ae4936" />
+  NOTE: Set repo to public
+- Create dbt project
+  - <img width="1753" height="610" alt="image" src="https://github.com/user-attachments/assets/a177badd-94b4-44bf-82cf-1a7918671f94" />
+- Create Snowflake connection in dbt
+  - [Connect To Snowflake In dbt Cloud](https://youtu.be/XH8ZGMmyG8A?si=5HhUIRbH6zSbrfnN)
+  - <img width="832" height="379" alt="image" src="https://github.com/user-attachments/assets/7633b023-32af-407b-825b-ad68b39ba427" />
+  - <img width="976" height="494" alt="image" src="https://github.com/user-attachments/assets/0c5e3189-ba73-454c-b047-4b9a93242f17" />
+  - Snowflake: Copy URL and remove "https://" and ".snowflakecomputing.com" to leave account
+  - <img width="1921" height="764" alt="image" src="https://github.com/user-attachments/assets/d9e29c5d-ecc6-4ea1-9867-d42f69568baf" />
+  - <img width="812" height="821" alt="image" src="https://github.com/user-attachments/assets/a502dc4e-ea15-4cb5-8580-2768f71e8c9d" />
+  - <img width="711" height="1302" alt="image" src="https://github.com/user-attachments/assets/cf1d697c-bcfd-453f-a1c8-ff6cb17ff951" />
+- Link GitHub repo to dbt project
+  - <img width="672" height="680" alt="image" src="https://github.com/user-attachments/assets/f1ccd26a-f074-40a6-a9dc-4391782fa2a6" />
+  - <img width="534" height="854" alt="image" src="https://github.com/user-attachments/assets/8c61c6ef-233f-402c-8d3c-a06bb82ab7cd" />
+  - <img width="319" height="292" alt="image" src="https://github.com/user-attachments/assets/c3adbcdd-4d77-4136-962e-e2902944016d" />
+  - <img width="1005" height="885" alt="image" src="https://github.com/user-attachments/assets/30761b9b-dae2-417b-a2f9-1efd899475cc" />
+- Create folder hierarchy in dbt project
+  - <img width="257" height="172" alt="image" src="https://github.com/user-attachments/assets/6d52147b-14fa-4dd5-90e0-b172586be64b" />
+- Create streamlit folder in repo
+  - <img width="283" height="106" alt="image" src="https://github.com/user-attachments/assets/d3d7510c-5bda-4349-b93f-2bade6a6fafb" />
+  - NOTE: Create a /.streamlit folder in inside /streamlit to include the secrets file used in streamlit connection to snowflake
+- Create streamlit App and allow public access
+  - <img width="1034" height="653" alt="image" src="https://github.com/user-attachments/assets/0d77bd74-13b0-4bb5-9371-0f3367563c38" />
+  - <img width="559" height="777" alt="image" src="https://github.com/user-attachments/assets/1e807efa-8382-400f-a947-dac761005edf" />
+  - <img width="905" height="538" alt="image" src="https://github.com/user-attachments/assets/909e2346-abaa-4163-ab71-3c6b18d44791" />
+- Install dependent python libraries
+- Update Streamlit app and Implement AI Chatbox & deploy
+  - <img width="945" height="381" alt="image" src="https://github.com/user-attachments/assets/0fe1d369-3d3e-4e63-b72d-7dfae3b1401f" />
+- Deploy Github repo
+
+**Future Development & Features:**
+- Further exploration of AI dashboard functionality
+- Python connector in Snowflake
+- Identity lookup dimension & intermediate tables
+  - To better improve on star schema, create unique IDs or compoite keys on dimension and fact tables
+  - Join by IDs rather than by string values
+- Create a dev, stage, and prod environment
+- Explore secret storing alternatives
+- Schedule pipeline and run app
+- Stream app additional charts/KPIs
+  - Regional margin targets
+  - Forecasting various metrics
+  - Sales Matrix Table - region, city, community
+  - Average City Sales Prices
+  - Average Sales days to close
+  - Average Regional Sales Prices
+  - Average Sales Consultant Comission
+  - Sales by Buyer's Source
+  - Sales by Community
+  - Sales by City
+  - Filters: Date Range, Communities, Cities, Plan, Buyer's Source, Sales_Consultant
