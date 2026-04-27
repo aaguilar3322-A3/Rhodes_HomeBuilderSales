@@ -1,0 +1,9 @@
+streamlit
+pandas
+altair
+snowflake-connector-python
+snowflake-snowpark-python
+dbt-core
+dbt-snowflake
+python-dotenv
+snowflake-ml-python
