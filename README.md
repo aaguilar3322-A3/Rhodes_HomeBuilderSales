@@ -57,6 +57,9 @@
      - Marts: Fact & dimension tables for reporting
        - /models/marts/sales
        - <img width="264" height="444" alt="image" src="https://github.com/user-attachments/assets/2160aa55-7bf2-4f37-84dd-b685f301c6af" />
+     - Lineage:
+       - <img width="1173" height="1143" alt="image" src="https://github.com/user-attachments/assets/ab6c64df-c44e-4f44-88d5-e7021456f183" />
+
 
 **Snowflake Schema Structure:**
 -  Data Warehouse
