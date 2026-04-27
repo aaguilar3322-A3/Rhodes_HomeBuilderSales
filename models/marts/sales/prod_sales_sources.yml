@@ -1,0 +1,5 @@
+version: 2
+
+models:
+  - name: fact_sales_price_per_sqft
+  - name: fact_avg_city_sales_price

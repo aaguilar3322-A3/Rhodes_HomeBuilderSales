@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: rhodes_sales
+    database: rhodes
+    schema: staging_sales
+    tables:
+      - name: homebuilder_sales_raw
+      - name: regional_managers_raw
+      
