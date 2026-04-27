@@ -4,6 +4,9 @@ An end-to-end data pipeline transforming raw homebuilder sales data, for Rhodes,
 Overview
 This project delivers an end‑to‑end sales analytics platform designed for homebuilder operations.
 
+Streamlit App
+-  URL: [Rhodes Enterprises - Homebuilder Sales Performance](https://analytics-rhodes-sales-x16323452.streamlit.app/)
+
 It integrates:
 - Snowflake ingestion pipelines for loading raw sales, consultant, and regional data
 - dbt models for transforming raw data into clean, analytics‑ready marts
