@@ -5,10 +5,9 @@ import snowflake.connector
 
 import altair as alt
 
-st.title("🏡 Rhodes Enterprises - Homebuilder Sales Performance")
-st.write(
-    "Insights for Regional Managers: sales trends, consultant performance, and regional activity."
-)
+#from openai import OpenAI
+from snowflake.cortex import Complete
+
 
 # Connect to Snowflake via secrets file (do not publish secrets file to git)
 conn = snowflake.connector.connect(
@@ -27,7 +26,14 @@ df_cs = pd.read_sql("SELECT * FROM fact_sales_by_region_my", conn)
 
 df_sr = pd.read_sql("SELECT * FROM fact_sales_by_region", conn)
 
-df_agents = pd.read_sql("SELECT * FROM fact_sales_agent_closed_percent", conn)
+# Region KPI by year data
+df_ry = pd.read_sql("select * from fact_sales_by_region_year", conn)
+
+# Query sales agents fact tables
+df_agents = pd.read_sql("SELECT MONTH_CLOSING_RANK, YEAR, MONTH, SALES_CONSULTANT, MONTH_AVERAGE_COMMISSION, MONTH_CLOSED, MONTH_UNDER_CONTRACT, MONTH_CANCELLED, MONTH_CONTRACTS, MONTH_CLOSED_PCT" \
+" FROM fact_monthly_sales_agent_closed_percent", conn)
+
+df_agents_yearly = pd.read_sql("SELECT * FROM fact_yearly_sales_agent_closed_percent", conn)
 
 # Query dimension regions table
 df_c = pd.read_sql("SELECT distinct Region FROM dim_cities", conn)
@@ -53,9 +59,31 @@ df_my = pd.read_sql("SELECT distinct year, month FROM fact_sales_by_region_my", 
 # Modify color of sidebar filters
 st.markdown("""
 <style>
+
+/* Selected value chips inside multiselect */
+[data-testid="stSidebar"] [data-baseweb="tag"] {
+    background-color: #cce6ff !important;   /* Light blue */
+    color: #003366 !important;              /* Dark text */
+    border-radius: 6px !important;
+    border: 1px solid #99c2ff !important;
+}
+
 [data-testid="stSidebar"] {
     background-color: #e6f2ff;
 }
+            
+[data-testid="stSidebar"] label {
+    color: #003366 !important;   /* Navy blue labels */
+    font-weight: 600 !important;
+}
+</st
+            
+/* Remove the default red hover */
+[data-testid="stSidebar"] [data-baseweb="tag"]:hover {
+    background-color: #b3d9ff !important;
+    color: #003366 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,6 +91,11 @@ st.markdown("""
 # Create a sidebar with filters - include all filters from dimension tables    
 with st.sidebar:
     st.header("Filters")
+    
+    year = st.selectbox(
+        "Year",
+        sorted(df_my["YEAR"].unique())
+    )
 
     regions = st.multiselect(
         "Region",
@@ -94,15 +127,12 @@ with st.sidebar:
     #    default=df_cs["SALES_CONSULTANT"].unique()
     #)
 
-    year = st.selectbox(
-        "Year",
-        sorted(df_my["YEAR"].unique())
-    )
 
-    months = st.selectbox(
-        "Month",
-        sorted(df_my["MONTH"].unique())
-    )
+    #months = st.multiselect(
+    #    "Month",
+    #    df_my["MONTH"].unique(),
+    #    default=df_my["MONTH"].unique()
+    #)
 
     #closedates = st.multiselect(
     #    "Close Date",
@@ -112,32 +142,53 @@ with st.sidebar:
 
 # Apply filters globally to be able to interact with dashboard
 filtered = df_cs[
-    (df_cs["REGION"].isin(regions)) &
-    (df_cs["REGIONAL_MANAGER"].isin(managers)) &
+    ((df_cs["YEAR"] == year) &
+     df_cs["REGION"].isin(regions)) &
+    (df_cs["REGIONAL_MANAGER"].isin(managers))
+
+
     #
     #(df_cs["CITY"].isin(cities)) &
     #(df_cs["COMMUNITY"].isin(communities)) &
     #(df_cs["SALES_CONSULTANT"].isin(consultants)) &
-    (df_cs["YEAR"] == year)
-     &
-    (df_cs["MONTH"].isin(months)) 
+    
+    #&
+    #df_cs["MONTH"].isin(months) 
     #&
     #(df_cs["CLOSE_DATE"].isin(closedates))
 ]
 
+########## Beginning of dashboard ##########
+st.title("🏡 Rhodes Enterprises - Homebuilder Sales Performance")
+st.write(
+    "Insights for Regional Managers: sales trends, sales consultant performance, and projected sales."
+)
+
 ########## KPI for regional sales targets met (split by region) ##########
+st.subheader(f"🎯 Sales Target Achieved by Region in {year}")
 
 # KPI-specific filter: only region + regional manager
-kpi_filtered_total_sales = df_sr[
-    (df_sr["REGION"].isin(regions)) &
-    (df_sr["REGIONAL_MANAGER"].isin(managers))
+kpi_filtered_total_sales = df_ry[
+    (df_ry["YEAR"] == year) &
+    (df_ry["REGION"].isin(regions)) &
+    (df_ry["REGIONAL_MANAGER"].isin(managers))
+]
+
+
+# Consultant filter
+df_agents_filtered = df_agents[
+    (df_agents["YEAR"] == year) 
+    #& (df_agents["MONTH"].isin(months))
 ]
 
 # Group by region
 kpi_by_region = (
     kpi_filtered_total_sales
-    .groupby("REGION", as_index=False)["SALES_TARGET_PCT"]
-    .mean()
+    .groupby("REGION", as_index=False)
+    .agg({
+        "SALES_TARGET_PCT": "mean",
+        "RM_SALES_TARGET_UNITS": "sum"   # or "mean" depending on your logic
+    })
 )
 
 # Cap values at 100%
@@ -149,34 +200,41 @@ cols = st.columns(len(kpi_by_region))
 for idx, row in kpi_by_region.iterrows():
     region = row["REGION"]
     pct = row["SALES_TARGET_PCT"]
+    target_units = row["RM_SALES_TARGET_UNITS"]
 
     # Color logic
-    if pct >= 100:
+    if pct >= 90:
         color = "#2ecc71"   # green
-    elif pct >= 80:
-        color = "#eed277"   # light yellow
+    elif pct >= 70:
+        color = "#e2c76d"   # light yellow
     else:
-        color = "#c52929"   # light red
+        color = "#f14747"   # light red
 
-
-    # Render KPI card
     cols[idx].markdown(
         f"""
         <div style="
             background-color:{color};
-            padding:20px;
+            padding:15px;
             border-radius:10px;
+            border:3px solid black;
             text-align:center;
             font-size:20px;
             font-weight:bold;
-            ">
+        ">
             {region}<br>
-            <span style="font-size:28px;">{pct:.1f}%</span><br>
-            <span style="font-size:14px;">Sales Target</span>
+            <span style="font-size:22px;">{pct:.1f}%</span><br>
+            <span style="font-size:16px; font-weight:600;">
+                Sales Target: {target_units}
+            </span>
         </div>
         """,
         unsafe_allow_html=True
     )
+
+
+# Add spacing in between charts
+st.write("")
+
 
 ########## Line chart for regional closed sales by month ##########
 # Create a proper Month column for time-series plotting
@@ -200,85 +258,431 @@ line_chart = (
             title="Month",
             sort=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
         ),
-        y=alt.Y("sum(TOTAL_CLOSED):Q", title="Total Closed Sales"),
+        y=alt.Y("sum(TOTAL_CLOSED):Q", title="Sales Closed"),
         color=alt.Color("REGION:N", title="Region"),
         tooltip=["REGION", "YEAR", "MONTH_NAME", "TOTAL_CLOSED"]
     )
     .properties(
-        title=f"Total Closed Sales by Region ({year})",
+        title=f"📍 Total Closed Sales by Region ({year})",
         width="container"
     )
 )
 
-
-
 # Display line chart
 st.altair_chart(line_chart, use_container_width=True)
 
+# Add divider in between chart sections
+st.write("")
+st.divider()
+
+########## Integrate Forecasting Model from Snowflake - Create Chart ##########
+query = """select * from fact_forecast_closed_sales_results;"""
+
+# Prepare charting data from forecast
+df_forecast = pd.read_sql(query, conn)
+
+df_long = df_forecast.melt(
+    id_vars=["REGION", "MONTH_DATE"],
+    value_vars=["ACTUAL", "FORECAST"],
+    var_name="TYPE",
+    value_name="VALUE"
+)
+
+df_long["REGION_ACTUAL"] = df_long["REGION"].where(df_long["TYPE"] == "ACTUAL")
+df_long["REGION_FORECAST"] = df_long["REGION"].where(df_long["TYPE"] == "FORECAST")
+df_long["REGION_ACTUAL"] = df_long["REGION_ACTUAL"].fillna("").apply(
+    lambda x: f"{x} Actual" if x != "" else None
+)
+
+df_long["REGION_FORECAST"] = df_long["REGION_FORECAST"].fillna("").apply(
+    lambda x: f"{x} Forecast" if x != "" else None
+)
+
+df_actual = df_long[df_long["TYPE"] == "ACTUAL"]
+df_forecast = df_long[df_long["TYPE"] == "FORECAST"]
 
 
-
-########## Rank chart for sales consultants closed sales ##########
-#left_col, right_col = st.columns([2, 1])
-#with right_col:
-
-
-df_agents_filtered = df_agents[
-    (df_agents["YEAR"] == year) &
-    (df_agents["MONTH"] == (months))
-]
-
-
-rank_chart = (
-    alt.Chart(df_agents_filtered)
-    .mark_bar()
+# Display and create forecasting chart
+actual_chart = (
+    alt.Chart(df_actual)
+    .mark_line(point=True)
     .encode(
-        y=alt.Y(
-            "SALES_CONSULTANT:N",
-            sort="-x",
-            title="Sales Consultant"
-        ),
-        x=alt.X(
-            "MONTH_CLOSED_PCT:Q",
-            title="Monthly Closings"
-        ),
+        x=alt.X("MONTH_DATE:T", title="Month / Year"),
+        y=alt.Y("VALUE:Q", title="Sales Closed"),
         color=alt.Color(
-            "MONTH_CLOSING_RANK:O",
-            scale=alt.Scale(
-                domain=[1, 2, 3, 4, 5, 6],
-                range=["#2ecc71", "#27ae60", "#f1c40f", "#e67e22", "#e65022", "#e74c3c"]
-            ),
-            title="Rank"
+            "REGION_ACTUAL:N",
+            title="Region / Value"
         ),
-        tooltip=[
-            "SALES_CONSULTANT",
-            "MONTH_CLOSING_RANK",
-            "MONTH_CLOSED",
-            "MONTH_UNDER_CONTRACT",
-            "MONTH_CANCELLED",
-            "MONTH_CONTRACTS",
-            "MONTH_CLOSED_PCT",
-            "MONTH_AVERAGE_COMMISSION",
-            "TOTAL_CLOSED",
-            "TOTAL_CLOSED_PCT",
-            "TOTAL_CLOSING_RANK"
-        ]
+        tooltip=["REGION", "MONTH_DATE", "VALUE"]
     )
-    .properties(
-        title=f"🏆 Sales Consultant Ranking — {year}/{months}",
-        height=400
+)
+
+forecast_chart = (
+    alt.Chart(df_forecast)
+    .mark_line(point=True)
+    .encode(
+        x=alt.X("MONTH_DATE:T", title="Month / Year"),
+        y=alt.Y("VALUE:Q", title="Sales Closed"),
+        color=alt.Color(
+            "REGION_FORECAST:N",
+            title="Region / Value"
+        ),
+        strokeDash=alt.value([4,4]),
+        tooltip=["REGION", "MONTH_DATE", "VALUE"]
+    )
+)
+
+forecast_start = df_actual["MONTH_DATE"].max()
+
+separator = (
+    alt.Chart(pd.DataFrame({"x": [forecast_start]}))
+    .mark_rule(strokeDash=[4,4], color="gray")
+    .encode(x="x:T")
+)
+
+forecast_labels = (
+    alt.Chart(df_forecast)
+    .mark_text(align="left", dx=5, dy=-5, fontSize=12)
+    .encode(
+        x="MONTH_DATE:T",
+        y="VALUE:Q",
+        text="REGION:N",
+        color=alt.Color("REGION_FORECAST:N")
+    )
+    .transform_filter(
+        alt.datum.MONTH_DATE == df_forecast["MONTH_DATE"].max()
     )
 )
 
 
+final_chart = (actual_chart + forecast_chart).properties(
+    title="🌦️ Projected Closed Sales by Region (6 Month Forecast)",
+    width="container",
+    height=400
+)
+
+st.altair_chart(final_chart, use_container_width=True)
+st.divider()
 
 
-# Create charts using the metrics and dimensions
-#chart = alt.Chart(filtered).mark_bar().encode(
-#    x="CITY",
-#    y="CONTRACT_PRICE",
-#    color="CITY"
-#)
+########## Rank chart for sales consultants closed sales ##########
+# Layout: main content left, rank chart right
+#left_col, right_col = st.columns([2, 1])
 
-#st.altair_chart(chart, use_container_width=True)
+df_agents_yearly["SALES_CONSULTANT"] = df_agents_yearly["SALES_CONSULTANT"].str.strip().str.upper()
+
+# Filter by year only
+df_agents["SALES_CONSULTANT"] = df_agents["SALES_CONSULTANT"].str.strip().str.upper()
+
+df_agents_filtered = df_agents[df_agents["YEAR"] == year].copy()
+df_yearly_filtered = df_agents_yearly[df_agents_yearly["YEAR"] == year].copy()
+
+df_agents_filtered = df_agents_filtered.merge(
+    df_yearly_filtered[["YEAR", "SALES_CONSULTANT", "TOTAL_CLOSING_RANK", "TOTAL_CLOSED"]],
+    on=["YEAR", "SALES_CONSULTANT"],
+    how="left"
+)
+
+# Create month labels
+df_agents_filtered["MONTH_NAME"] = (
+    df_agents_filtered["MONTH"]
+    .astype(int)
+    .astype(str)
+    .str.zfill(2)
+)
+
+
+df_agents_filtered["MONTH_NAME"] = pd.to_datetime(
+    df_agents_filtered["MONTH_NAME"], format="%m"
+).dt.strftime("%b")
+
+st.subheader(f"🏅 Top 3 Sales Consultants of {year}")
+
+top3 = df_yearly_filtered.nsmallest(3, "TOTAL_CLOSING_RANK")
+
+medal_colors = ["#FFD700", "#C0C0C0", "#9C7353"]  # Gold, Silver, Bronze
+medal_emojis = ["🥇", "🥈", "🥉"]
+
+cols = st.columns(3)
+for i, row in enumerate(top3.itertuples()):
+    bg_color = medal_colors[i]  # pick gold, silver, bronze
+    medal = medal_emojis[i]
+
+    cols[i].markdown(
+        f"""
+        <div style="
+            background-color:{bg_color};
+            padding:15px;
+            border-radius:10px;
+            border:3px solid black;
+            text-align:center;
+            font-size:20px;
+            font-weight:bold;
+            color:black;
+        ">
+            {medal} {row.SALES_CONSULTANT}<br>
+            <span style="font-size:16px;">Total Closed: {row.TOTAL_CLOSED}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Add spacing in between charts
+st.write("")
+
+
+#Sales Consultants -  Build line + scatter chart
+consultant_trend_chart = (
+    alt.Chart(df_agents_filtered)
+    .mark_line(point=True)
+    .encode(
+        x=alt.X(
+            "MONTH_NAME:N",
+            title="Month",
+            sort=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        ),
+        y=alt.Y(
+            "MONTH_CLOSED:Q",
+            title="Sales Closed"
+        ),
+        color=alt.Color(
+            "SALES_CONSULTANT:N",
+            title="Sales Consultant"
+        ),
+        tooltip=[
+            "SALES_CONSULTANT",
+            "YEAR",
+            "MONTH",
+            "MONTH_CLOSED",
+            "MONTH_CLOSED_PCT",
+            "MONTH_CLOSING_RANK",
+            "TOTAL_CLOSING_RANK",   # ⭐ YEARLY RANK ADDED HERE
+            "MONTH_CONTRACTS",
+            "MONTH_AVERAGE_COMMISSION"
+        ]
+    )
+    .properties(
+        title=f"📈 Sales Consultant Monthly Performance ({year})",
+        height=450
+    )
+)
+
+st.altair_chart(consultant_trend_chart, use_container_width=True)
+
+# Add divider in between chart sections
+st.divider()
+
+
+ ########## Integrate Snowflake Cortex Complete chatbox with acces to my data schema ##########
+st.header("💬 Ask Your Data (Snowflake Cortex)")
+
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display previous messages
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# Chat input
+user_input = st.chat_input("Ask a question about your sales data...")
+def get_dashboard_context():
+    return f"""
+    Dashboard: Homebuilder Sales Performance
+
+    KPIs:
+    - Sales Target % by Region (capped at 100%)
+    - Green: >=100%, Yellow: 80-99%, Red: <80%
+
+    Charts:
+    - Line Chart: Total Closed Sales by Region over Month
+      Columns: REGION, MONTH, TOTAL_CLOSED
+
+    - Consultant Trend:
+      Columns: SALES_CONSULTANT, MONTH_CLOSED, MONTH_CLOSING_RANK
+
+    Filters:
+    - Region
+    - Regional Manager
+    - Year
+
+    Top 3 consultants are based on TOTAL_CLOSING_RANK (lower is better)
+    """
+def answer_dashboard_question(prompt):
+    context = get_dashboard_context()
+
+    query = f"""
+    SELECT SNOWFLAKE.CORTEX.COMPLETE(
+        'snowflake-arctic',
+        $$
+        You are a data analyst explaining a dashboard.
+
+        Context:
+        {context}
+
+        Instructions:
+        - Answer clearly in business terms
+        - Do NOT generate SQL
+        - Use the dashboard context
+
+        User question:
+        {prompt}
+        $$
+    )::STRING;
+    """
+
+    cur = conn.cursor()
+    cur.execute(query)
+    response = cur.fetchone()[0]
+    cur.close()
+
+    return response
+def get_schema_info():
+    query = """
+    SELECT table_name, column_name
+    FROM information_schema.columns
+    WHERE table_schema = CURRENT_SCHEMA()
+    ORDER BY table_name, ordinal_position
+    """
+    df = pd.read_sql(query, conn)
+
+    schema_text = ""
+    for table, group in df.groupby("TABLE_NAME"):
+        cols = ", ".join(group["COLUMN_NAME"])
+        schema_text += f"{table}({cols})\n"
+
+    return schema_text
+
+def generate_sql(prompt):
+    schema_context = get_schema_info()
+
+    query = f"""
+    SELECT SNOWFLAKE.CORTEX.COMPLETE(
+        'snowflake-arctic',
+        $$
+        You are a Snowflake SQL expert.
+
+        Schema:
+        {schema_context}
+
+        Rules:
+        - Only use listed tables
+        - Only generate SELECT statements
+        - Use correct column names
+
+        Convert this question into SQL:
+        {prompt}
+        $$
+    )::STRING;
+    """
+
+    cur = conn.cursor()
+    cur.execute(query)
+    sql = cur.fetchone()[0]
+    cur.close()
+
+    return sql
+def run_sql(sql):
+    cur = conn.cursor()
+    try:
+        cur.execute(sql)
+
+        if cur.description:
+            cols = [c[0] for c in cur.description]
+            rows = cur.fetchall()
+            return pd.DataFrame(rows, columns=cols)
+        return None
+
+    except Exception as e:
+        return f"SQL Error: {e}"
+
+    finally:
+        cur.close()   
+def validate_sql(sql):
+    sql_clean = sql.lower().strip()
+
+    if not sql_clean.startswith("select"):
+        raise ValueError("Only SELECT queries allowed.")
+
+    forbidden = ["insert", "update", "delete", "drop", "alter"]
+    if any(word in sql_clean for word in forbidden):
+        raise ValueError("Unsafe query detected.")
+
+    return sql
+
+def is_dashboard_question(prompt):
+    p = prompt.lower()
+
+    keywords = [
+        "chart", "dashboard", "kpi", "visual",
+        "what does", "explain", "why", "trend",
+        "top", "performance"
+    ]
+
+    return any(k in p for k in keywords)
+
+def is_schema_question(prompt):
+    prompt_lower = prompt.lower()
+
+    keywords = [
+        "what tables", "list tables", "show tables",
+        "schema", "columns", "what columns"
+    ]
+
+    return any(k in prompt_lower for k in keywords)
+
+def answer_schema_question(prompt):
+    schema = get_schema_info()
+
+    if "table" in prompt.lower():
+        tables = [line.split("(")[0] for line in schema.strip().split("\n")]
+        return "Tables in schema:\n\n" + "\n".join(f"- {t}" for t in tables)
+
+    return f"Schema:\n\n{schema}"
+
+
+# Snowflake Cortex access to data schema
+# When user sends a message
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    with st.chat_message("assistant"):
+        with st.spinner("Generating query..."):
+
+            try:
+                if is_schema_question(user_input):
+                    response = answer_schema_question(user_input)
+                    st.markdown(response)
+                elif is_dashboard_question(user_input):
+                    response = answer_dashboard_question(user_input)
+                    st.markdown(response)
+                else:
+                    # Step 1: Generate SQL
+                    sql = generate_sql(user_input)
+
+                    st.markdown("**Generated SQL:**")
+                    st.code(sql, language="sql")
+
+                    # Step 2: Validate
+                    validate_sql(sql)
+
+                    # Step 3: Execute
+                    result = run_sql(sql)
+
+                    # Step 4: Display
+                    if isinstance(result, pd.DataFrame):
+                        st.dataframe(result, use_container_width=True)
+                    else:
+                        st.markdown(result)
+                    response = "Query executed successfully."
+
+            except Exception as e:
+                response = f"Error: {e}"
+                st.error(response)
+
+    st.session_state.messages.append({"role": "assistant", "content": response})  
 
