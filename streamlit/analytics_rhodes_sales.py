@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+#import numpy as np
 import snowflake.connector
 
 import altair as alt
 
 #from openai import OpenAI
-from snowflake.cortex import Complete
+#from snowflake.cortex import Complete
 
 
 # Connect to Snowflake via secrets file (do not publish secrets file to git)
