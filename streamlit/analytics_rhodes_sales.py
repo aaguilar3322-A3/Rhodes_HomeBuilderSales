@@ -485,64 +485,13 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Chat input
-user_input = st.chat_input("Ask a question about your sales data...")
-def get_dashboard_context():
-    return f"""
-    Dashboard: Homebuilder Sales Performance
 
-    KPIs:
-    - Sales Target % by Region (capped at 100%)
-    - Green: >=100%, Yellow: 80-99%, Red: <80%
-
-    Charts:
-    - Line Chart: Total Closed Sales by Region over Month
-      Columns: REGION, MONTH, TOTAL_CLOSED
-
-    - Consultant Trend:
-      Columns: SALES_CONSULTANT, MONTH_CLOSED, MONTH_CLOSING_RANK
-
-    Filters:
-    - Region
-    - Regional Manager
-    - Year
-
-    Top 3 consultants are based on TOTAL_CLOSING_RANK (lower is better)
-    """
-def answer_dashboard_question(prompt):
-    context = get_dashboard_context()
-
-    query = f"""
-    SELECT SNOWFLAKE.CORTEX.COMPLETE(
-        'snowflake-arctic',
-        $$
-        You are a data analyst explaining a dashboard.
-
-        Context:
-        {context}
-
-        Instructions:
-        - Answer clearly in business terms
-        - Do NOT generate SQL
-        - Use the dashboard context
-
-        User question:
-        {prompt}
-        $$
-    )::STRING;
-    """
-
-    cur = conn.cursor()
-    cur.execute(query)
-    response = cur.fetchone()[0]
-    cur.close()
-
-    return response
-def get_schema_info():
+# Build context layer
+def get_schema_context():
     query = """
     SELECT table_name, column_name
     FROM information_schema.columns
-    WHERE table_schema = CURRENT_SCHEMA()
+    WHERE table_schema IN ('PROD_SALES', 'STAGING_SALES')
     ORDER BY table_name, ordinal_position
     """
     df = pd.read_sql(query, conn)
@@ -554,24 +503,113 @@ def get_schema_info():
 
     return schema_text
 
-def generate_sql(prompt):
-    schema_context = get_schema_info()
+
+def get_dashboard_context():
+    return f"""
+    DASHBOARD CONTEXT:
+
+    KPI:
+    - Sales Target % by Region (capped at 100%)
+    - Color logic: Green >= 90%, Yellow >= 70%, Red < 70%
+
+    CHARTS:
+    1. Closed Sales by Region (Line Chart)
+       Columns: REGION, MONTH, TOTAL_CLOSED
+
+    2. Consultant Monthly Performance
+       Columns: SALES_CONSULTANT, MONTH_CLOSED, MONTH_CLOSING_RANK
+
+    3. Forecast Chart (Actual vs Forecast)
+       Columns: REGION, MONTH_DATE, ACTUAL, FORECAST
+
+    FILTERS:
+    - Year
+    - Region
+    - Regional Manager
+
+    TOP 3 CONSULTANTS:
+    - Based on TOTAL_CLOSING_RANK (lower = better)
+    """
+
+
+# Data extraction for dashboard
+def get_dashboard_metrics():
+    return {
+        "top3_consultants": top3.to_dict(orient="records"),
+        "kpi_by_region": kpi_by_region.to_dict(orient="records"),
+        "consultant_monthly": df_agents_filtered.to_dict(orient="records"),
+        "regional_sales": filtered.to_dict(orient="records"),
+        "forecast": df_forecast.to_dict(orient="records")
+    }
+
+
+def fetch_metric_from_ai_request(request):
+    metrics = get_dashboard_metrics()
+    request = request.lower()
+
+    if "top 3" in request or "top three" in request:
+        return metrics["top3_consultants"]
+
+    if "kpi" in request or "target" in request:
+        return metrics["kpi_by_region"]
+
+    if "forecast" in request:
+        return metrics["forecast"]
+
+    if "consultant" in request:
+        return metrics["consultant_monthly"]
+
+    if "regional" in request or "region" in request:
+        return metrics["regional_sales"]
+
+    return None
+
+
+# Call AI Model
+MODEL_NAME = "mistral-large"   # Updated model
+
+
+def ask_ai(prompt):
+    schema = get_schema_context()
+    dashboard = get_dashboard_context()
 
     query = f"""
     SELECT SNOWFLAKE.CORTEX.COMPLETE(
-        'snowflake-arctic',
+        '{MODEL_NAME}',
         $$
-        You are a Snowflake SQL expert.
+        You are an expert data analyst for a homebuilder sales organization.
 
-        Schema:
-        {schema_context}
+        You have access to:
+        - Full Snowflake schema
+        - Dashboard KPIs
+        - Chart data
+        - Forecast data
+        - Consultant performance data
 
-        Rules:
-        - Only use listed tables
-        - Only generate SELECT statements
-        - Use correct column names
+        IMPORTANT:
+        If the user asks for specific values (like "top 3 consultants", 
+        "sales for West region", "forecast for March"):
+        → Respond with: DATA_REQUEST: <description>
 
-        Convert this question into SQL:
+        Examples:
+        - "DATA_REQUEST: top 3 consultants"
+        - "DATA_REQUEST: regional kpi"
+        - "DATA_REQUEST: forecast"
+        - "DATA_REQUEST: consultant monthly performance"
+
+        If the user asks a business question:
+        → Answer normally using dashboard logic.
+
+        If the user asks for SQL:
+        → Generate ONLY a SELECT query.
+
+        SCHEMA:
+        {schema}
+
+        DASHBOARD:
+        {dashboard}
+
+        USER QUESTION:
         {prompt}
         $$
     )::STRING;
@@ -579,71 +617,14 @@ def generate_sql(prompt):
 
     cur = conn.cursor()
     cur.execute(query)
-    sql = cur.fetchone()[0]
+    response = cur.fetchone()[0]
     cur.close()
-
-    return sql
-def run_sql(sql):
-    cur = conn.cursor()
-    try:
-        cur.execute(sql)
-
-        if cur.description:
-            cols = [c[0] for c in cur.description]
-            rows = cur.fetchall()
-            return pd.DataFrame(rows, columns=cols)
-        return None
-
-    except Exception as e:
-        return f"SQL Error: {e}"
-
-    finally:
-        cur.close()   
-def validate_sql(sql):
-    sql_clean = sql.lower().strip()
-
-    if not sql_clean.startswith("select"):
-        raise ValueError("Only SELECT queries allowed.")
-
-    forbidden = ["insert", "update", "delete", "drop", "alter"]
-    if any(word in sql_clean for word in forbidden):
-        raise ValueError("Unsafe query detected.")
-
-    return sql
-
-def is_dashboard_question(prompt):
-    p = prompt.lower()
-
-    keywords = [
-        "chart", "dashboard", "kpi", "visual",
-        "what does", "explain", "why", "trend",
-        "top", "performance"
-    ]
-
-    return any(k in p for k in keywords)
-
-def is_schema_question(prompt):
-    prompt_lower = prompt.lower()
-
-    keywords = [
-        "what tables", "list tables", "show tables",
-        "schema", "columns", "what columns"
-    ]
-
-    return any(k in prompt_lower for k in keywords)
-
-def answer_schema_question(prompt):
-    schema = get_schema_info()
-
-    if "table" in prompt.lower():
-        tables = [line.split("(")[0] for line in schema.strip().split("\n")]
-        return "Tables in schema:\n\n" + "\n".join(f"- {t}" for t in tables)
-
-    return f"Schema:\n\n{schema}"
+    return response
 
 
-# Snowflake Cortex access to data schema
-# When user sends a message
+# User input handling
+user_input = st.chat_input("Ask a question about your sales data...")
+
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
 
@@ -651,38 +632,34 @@ if user_input:
         st.markdown(user_input)
 
     with st.chat_message("assistant"):
-        with st.spinner("Generating query..."):
+        with st.spinner("Analyzing your data..."):
+            response = ask_ai(user_input)
 
-            try:
-                if is_schema_question(user_input):
-                    response = answer_schema_question(user_input)
-                    st.markdown(response)
-                elif is_dashboard_question(user_input):
-                    response = answer_dashboard_question(user_input)
-                    st.markdown(response)
+            # ⭐ Normalize AI response so detection ALWAYS works
+            clean_response = (
+                response.strip()
+                .replace('"', "")
+                .replace("'", "")
+                .lower()
+            )
+
+            # ⭐ Detect DATA_REQUEST reliably
+            if clean_response.startswith("data_request:"):
+                req = clean_response.replace("data_request:", "").strip()
+                data = fetch_metric_from_ai_request(req)
+
+                if data is not None:
+                    df = pd.DataFrame(data)
+                    st.dataframe(df, use_container_width=True)
+
+                    final_response = f"Here are the values for: **{req}**"
                 else:
-                    # Step 1: Generate SQL
-                    sql = generate_sql(user_input)
+                    final_response = "I couldn't match that request to a dataset."
 
-                    st.markdown("**Generated SQL:**")
-                    st.code(sql, language="sql")
+                st.markdown(final_response)
+                st.session_state.messages.append({"role": "assistant", "content": final_response})
 
-                    # Step 2: Validate
-                    validate_sql(sql)
-
-                    # Step 3: Execute
-                    result = run_sql(sql)
-
-                    # Step 4: Display
-                    if isinstance(result, pd.DataFrame):
-                        st.dataframe(result, use_container_width=True)
-                    else:
-                        st.markdown(result)
-                    response = "Query executed successfully."
-
-            except Exception as e:
-                response = f"Error: {e}"
-                st.error(response)
-
-    st.session_state.messages.append({"role": "assistant", "content": response})  
-
+            else:
+                # Normal AI response
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
