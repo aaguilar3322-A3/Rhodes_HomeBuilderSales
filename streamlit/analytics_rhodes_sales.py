@@ -24,6 +24,12 @@ conn = snowflake.connector.connect(
 # Query the fact_sales_by_region table
 df_cs = pd.read_sql("SELECT * FROM fact_sales_by_region_my", conn)
 
+region_manager_map = (
+    df_cs[["REGION", "REGIONAL_MANAGER"]]
+    .drop_duplicates()
+)
+
+
 df_sr = pd.read_sql("SELECT * FROM fact_sales_by_region", conn)
 
 # Region KPI by year data
@@ -97,17 +103,36 @@ with st.sidebar:
         sorted(df_my["YEAR"].unique())
     )
 
-    regions = st.multiselect(
+# First filter: Region
+    all_regions = sorted(df_c["REGION"].unique())
+    selected_regions = st.multiselect(
         "Region",
-        df_c["REGION"].unique(),
-        default=df_c["REGION"].unique()
+        all_regions,
+        default=all_regions
     )
 
-    managers = st.multiselect(
-        "Regional Manager",
-        df_rm["REGIONAL_MANAGER"].unique(),
-        default=df_cs["REGIONAL_MANAGER"].unique()
+    # Filter managers based on selected regions
+    possible_managers = (
+        region_manager_map[region_manager_map["REGION"].isin(selected_regions)]
+        ["REGIONAL_MANAGER"]
+        .unique()
     )
+
+    selected_managers = st.multiselect(
+        "Regional Manager",
+        sorted(possible_managers),
+        default=sorted(possible_managers)
+    )
+
+    # Now restrict regions based on selected managers
+    possible_regions = (
+        region_manager_map[region_manager_map["REGIONAL_MANAGER"].isin(selected_managers)]
+        ["REGION"]
+        .unique()
+    )
+
+    # Final intersection
+    selected_regions = [r for r in selected_regions if r in possible_regions]
 
     #cities = st.multiselect(
     #    "City",
@@ -143,8 +168,8 @@ with st.sidebar:
 # Apply filters globally to be able to interact with dashboard
 filtered = df_cs[
     ((df_cs["YEAR"] == year) &
-     df_cs["REGION"].isin(regions)) &
-    (df_cs["REGIONAL_MANAGER"].isin(managers))
+     df_cs["REGION"].isin(selected_regions)) &
+    (df_cs["REGIONAL_MANAGER"].isin(selected_managers))
 
 
     #
@@ -170,8 +195,8 @@ st.subheader(f"🎯 Sales Target Achieved by Region in {year}")
 # KPI-specific filter: only region + regional manager
 kpi_filtered_total_sales = df_ry[
     (df_ry["YEAR"] == year) &
-    (df_ry["REGION"].isin(regions)) &
-    (df_ry["REGIONAL_MANAGER"].isin(managers))
+    (df_ry["REGION"].isin(selected_regions)) &
+    (df_ry["REGIONAL_MANAGER"].isin(selected_managers))
 ]
 
 
@@ -195,7 +220,10 @@ kpi_by_region = (
 kpi_by_region["SALES_TARGET_PCT"] = kpi_by_region["SALES_TARGET_PCT"].clip(upper=100)
 
 # Create KPI cards
-cols = st.columns(len(kpi_by_region))
+if kpi_by_region.empty:
+    st.warning("No data available for the selected filters. Please select at least one region and one regional manager.")
+else:
+    cols = st.columns(len(kpi_by_region))
 
 for idx, row in kpi_by_region.iterrows():
     region = row["REGION"]
