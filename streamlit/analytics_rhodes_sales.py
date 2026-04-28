@@ -16,7 +16,7 @@ conn = snowflake.connector.connect(
     account=st.secrets["snowflake"]["account"],
     warehouse=st.secrets["snowflake"]["warehouse"],
     database=st.secrets["snowflake"]["database"],
-    schema=st.secrets["snowflake"]["schema"],
+    schema=st.secrets["snowflake"]["schema"]
     #role=st.secrets["snowflake"]["role"]
 )
 
